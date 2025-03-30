@@ -14,6 +14,9 @@ namespace constrainautor {
 inline int nextEdge(int e) { return (e % 3 == 2) ? e - 2 : e + 1; }
 inline int prevEdge(int e) { return (e % 3 == 0) ? e + 2 : e - 1; }
 
+// Use the same invalid index value as delaunator
+constexpr std::size_t INVALID_INDEX = delaunator::INVALID_INDEX;
+
 class Constrainautor {
 public:
     delaunator::Delaunator& del;
@@ -69,18 +72,18 @@ public:
             
             const size_t adj = halfedges[nxt];
             edg = adj;
-        } while (edg != -1 && edg != start);
+        } while (edg != INVALID_INDEX && edg != start);
 
         size_t conEdge = edg;
-        int rescan = -1;
+        size_t rescan = INVALID_INDEX;
         
-        while (edg != -1) {
+        while (edg != INVALID_INDEX) {
             const size_t adj = halfedges[edg];
             const size_t bot = prevEdge(edg);
             const size_t top = prevEdge(adj);
             const size_t rgt = nextEdge(adj);
             
-            if (adj == -1) {
+            if (adj == INVALID_INDEX) {
                 throw std::runtime_error("Constraining edge exited the hull");
             }
             
@@ -101,7 +104,7 @@ public:
             );
             
             if (!convex) {
-                if (rescan == -1) {
+                if (rescan == INVALID_INDEX) {
                     rescan = edg;
                 }
                 
@@ -110,7 +113,7 @@ public:
                         throw std::runtime_error("Infinite loop: non-convex quadrilateral");
                     }
                     edg = rescan;
-                    rescan = -1;
+                    rescan = INVALID_INDEX;
                     continue;
                 }
                 
@@ -128,7 +131,7 @@ public:
             flipDiagonal(edg);
             
             if (intersectSegments(segP1, segP2, triangles[bot], triangles[top])) {
-                if (rescan == -1) {
+                if (rescan == INVALID_INDEX) {
                     rescan = bot;
                 }
                 if (rescan == bot) {
@@ -139,7 +142,7 @@ public:
             if (triangles[top] == segP2) {
                 conEdge = top;
                 edg = rescan;
-                rescan = -1;
+                rescan = INVALID_INDEX;
             } else if (intersectSegments(segP1, segP2, triangles[rgt], triangles[top])) {
                 edg = rgt;
             }
@@ -155,7 +158,7 @@ public:
                     flips[i] = false;
                     
                     const size_t adj = del.halfedges[i];
-                    if (adj == -1) continue;
+                    if (adj == INVALID_INDEX) continue;
                     
                     flips[adj] = false;
                     
@@ -191,7 +194,7 @@ public:
                 flips[edg] = false;
                 
                 const size_t adj = halfedges[edg];
-                if (adj == -1) {
+                if (adj == INVALID_INDEX) {
                     continue;
                 }
                 
@@ -246,7 +249,7 @@ public:
     int findEdge(size_t p1, size_t p2) {
         const size_t start1 = vertMap[p2];
         size_t edg = start1;
-        size_t prv = -1;
+        size_t prv = INVALID_INDEX;
         
         do {
             if (del.triangles[edg] == p1) {
@@ -254,10 +257,10 @@ public:
             }
             prv = nextEdge(edg);
             edg = del.halfedges[prv];
-        } while (edg != -1 && edg != start1);
+        } while (edg != INVALID_INDEX && edg != start1);
 
         if (del.triangles[nextEdge(prv)] == p1) {
-            return -prv;
+            return -static_cast<int>(prv);
         }
 
         return std::numeric_limits<int>::max();
@@ -336,13 +339,13 @@ private:
         flips[edg] = false;
         consd[edg] = true;
         
-        if (adj != -1) {
+        if (adj != INVALID_INDEX) {
             flips[adj] = false;
             consd[adj] = true;
-            return adj;
+            return static_cast<int>(adj);
         }
         
-        return -edg;
+        return -static_cast<int>(edg);
     }
 
     bool markFlip(size_t edg) {
@@ -351,7 +354,7 @@ private:
         }
         
         const size_t adj = del.halfedges[edg];
-        if (adj != -1) {
+        if (adj != INVALID_INDEX) {
             flips[edg] = true;
             flips[adj] = true;
         }
@@ -377,7 +380,7 @@ private:
         if (!flips[edg]) {
             consd[edg] = consd[top];
         }
-        if (adjTop != -1) {
+        if (adjTop != INVALID_INDEX) {
             del.halfedges[adjTop] = edg;
         }
         del.halfedges[bot] = top;
@@ -388,7 +391,7 @@ private:
         if (!flips[adj]) {
             consd[adj] = consd[bot];
         }
-        if (adjBot != -1) {
+        if (adjBot != INVALID_INDEX) {
             del.halfedges[adjBot] = adj;
         }
         del.halfedges[top] = bot;
@@ -413,7 +416,7 @@ private:
 
     bool isDelaunay(size_t edg) {
         const size_t adj = del.halfedges[edg];
-        if (adj == -1) {
+        if (adj == INVALID_INDEX) {
             return true;
         }
 
@@ -430,7 +433,7 @@ private:
         size_t inc = prevEdge(start);
         size_t adj = del.halfedges[inc];
         
-        while (adj != -1 && adj != start) {
+        while (adj != INVALID_INDEX && adj != start) {
             inc = prevEdge(adj);
             adj = del.halfedges[inc];
         }
